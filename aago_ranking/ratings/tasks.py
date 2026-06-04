@@ -3,7 +3,7 @@
 from __future__ import absolute_import, division
 from aago_ranking.games.models import Player, Game
 from aago_ranking.events.models import Event, EventPlayer
-from .models import PlayerRating
+from .models import PlayerRating, TrueSkillPlayerRating
 
 import io
 import logging
@@ -136,32 +136,63 @@ def create_games_dataframe():
     
     
 
-def generate_ttt_ratings():
-    PlayerRating.objects.all().delete()
-    
+def generate_ttt_ratings(dry_run=False, output=None):
+    """Calcula los ratings TrueSkill Through Time.
+
+    Por seguridad, los resultados se guardan en ``TrueSkillPlayerRating`` (tabla
+    separada) y NO se toca ``PlayerRating`` (el ranking actual AGA/RAAGo). Esto
+    permite comparar ambos rankings sin destruir datos.
+
+    Args:
+        dry_run: si es True, calcula pero no escribe nada en la base.
+        output: ruta opcional a un CSV donde volcar los ratings calculados.
+
+    Returns:
+        (new_ratings_df, log_evidence, mean_evidence)
+    """
     game_df = create_games_dataframe()
 
     new_ratings, log_evidence, mean_evidence = tttratings.calculate_ttt_ratings(game_df)
-    
-    
+
+    if output:
+        new_ratings.to_csv(output, index=False)
+
+    if dry_run:
+        logger.info("dry-run: %d ratings calculados, no se escribio en la base",
+                    len(new_ratings))
+        return new_ratings, log_evidence, mean_evidence
+
+    # Solo se borra la tabla de TTT, nunca PlayerRating.
+    TrueSkillPlayerRating.objects.all().delete()
+
+    skipped = 0
     for _i, row in new_ratings.iterrows():
         event = Event.objects.filter(end_date=row['date']).first()
-        
-        event.playerrating_set.create(player=Player.objects.get(pk=row['player_id']),
-                                mu=row['mu'],
-                                sigma=row['sigma'], )
-        
-    return log_evidence, mean_evidence
-    
-    
-    
+        if event is None:
+            # Puede pasar si la fecha del rating no coincide con ningun evento.
+            skipped += 1
+            continue
+
+        TrueSkillPlayerRating.objects.create(
+            event=event,
+            player=Player.objects.get(pk=row['player_id']),
+            mu=row['mu'],
+            sigma=row['sigma'],
+        )
+
+    if skipped:
+        logger.warning("%d ratings omitidos por no encontrar evento con esa fecha",
+                       skipped)
+
+    return new_ratings, log_evidence, mean_evidence
+
+
+
 def run_ratings_update_ttt():
-    log_evidence, mean_evidence = generate_ttt_ratings()
-
-
+    _new_ratings, log_evidence, mean_evidence = generate_ttt_ratings()
 
     return {
-        'message': 'Ratings updated correctly',
+        'message': 'TrueSkill ratings updated correctly (tabla TrueSkillPlayerRating)',
         'log_evidence': log_evidence,
         'mean_evidence': mean_evidence
     }

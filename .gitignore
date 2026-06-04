@@ -58,6 +58,12 @@ node_modules/
 
 # virtual environments
 .env
+.venv/
+venv/
+
+# Settings/artefactos locales para probar TTT (no van al repo)
+ttt_test_settings.py
+ratings_ttt.csv
 
 # User-uploaded media
 aago_ranking/media/
