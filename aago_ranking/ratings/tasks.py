@@ -120,11 +120,13 @@ def run_ratings_update_cpp():
 
 
 def create_games_dataframe():
-    rated_games_query = (Q(unrated=False))
-    games = Game.objects.filter(rated_games_query).order_by('date')
-    
-    
-    
+    # event__isnull=False: el modelo TTT agrupa las partidas por la fecha de fin
+    # del evento, asi que solo consideramos partidas asociadas a un evento.
+    rated_games_query = Q(unrated=False) & Q(event__isnull=False)
+    games = (Game.objects.filter(rated_games_query)
+             .select_related('event', 'black_player', 'white_player')
+             .order_by('date'))
+
     games_list = [
         (g.pk, g.handicap, g.komi, g.result, g.event.end_date, g.black_player.pk, g.white_player.pk)
         for g in games
