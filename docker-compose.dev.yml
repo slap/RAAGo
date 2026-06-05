@@ -1,0 +1,31 @@
+# Entorno de desarrollo local: solo MySQL en Docker.
+# Django corre en el host (venv). El dump de la PR43 se carga automaticamente
+# la primera vez que se crea el volumen (scripts en /docker-entrypoint-initdb.d).
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Para recargar el dump desde cero: bajar con -v para borrar el volumen.
+#   docker compose -f docker-compose.dev.yml down -v
+
+services:
+  db:
+    image: mysql:8.0
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: raago
+      MYSQL_USER: raago
+      MYSQL_PASSWORD: raago
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - raago_mysql_data:/var/lib/mysql
+      - ./dumps/RAAGo-2026-06-05.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  raago_mysql_data: {}
