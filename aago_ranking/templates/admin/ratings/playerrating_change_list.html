@@ -1,9 +1,7 @@
 {% extends "admin/change_list.html" %}
 
 {% block content %}
-<form action="{% url "ratings:run_ratings_update" %}"  method="post">{% csrf_token %}<input type="submit" value="Run ratings update"></form>
+<form action="{% url "ratings:run_ratings_update" %}" method="post">{% csrf_token %}<input type="submit" value="Run AGA ratings update"></form>
 <form action="{% url "ratings:download_db_dump" %}" method="get" style="margin-top:8px;"><input type="submit" value="Download DB dump"></form>
 {{ block.super }}
 {% endblock %}
-
-

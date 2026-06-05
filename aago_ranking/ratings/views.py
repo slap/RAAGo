@@ -12,7 +12,16 @@ from . import tasks
 @staff_member_required
 @require_http_methods(["POST"])
 def run_ratings_update(_request):
-    json = tasks.run_ratings_update()
+    """Recalcula el ranking AGA viejo (binario raago/C++) -> PlayerRating."""
+    json = tasks.run_ratings_update_cpp()
+    return JsonResponse(json)
+
+
+@staff_member_required
+@require_http_methods(["POST"])
+def run_ttt_ratings_update(_request):
+    """Recalcula el ranking TrueSkill Through Time -> TrueSkillPlayerRating."""
+    json = tasks.run_ratings_update_ttt()
     return JsonResponse(json)
 
 

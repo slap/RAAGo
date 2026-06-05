@@ -184,7 +184,3 @@ def run_ratings_update_ttt():
         'log_evidence': log_evidence,
         'mean_evidence': mean_evidence
     }
-
-# Change run_ratings_update variable to the desired ratings function
-run_ratings_update = run_ratings_update_cpp
-# run_ratings_update = run_ratings_update_ttt

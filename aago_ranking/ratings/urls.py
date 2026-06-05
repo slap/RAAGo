@@ -5,6 +5,7 @@ from . import views
 app_name = 'ratings'
 
 urlpatterns = [
+    url(r'run-ttt-ratings-update', views.run_ttt_ratings_update, name='run_ttt_ratings_update'),
     url(r'run-ratings-update', views.run_ratings_update, name='run_ratings_update'),
     url(r'download-db-dump', views.download_db_dump, name='download_db_dump'),
 ]
