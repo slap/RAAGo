@@ -34,3 +34,11 @@ if settings.DEBUG:
         url(r'^404/$', default_views.page_not_found, kwargs={'exception': Exception('Page not Found')}),
         url(r'^500/$', default_views.server_error),
     ]
+
+    # django-debug-toolbar: registrar el namespace 'djdt' (las versiones nuevas
+    # ya no lo hacen automaticamente).
+    try:
+        from debug_toolbar.toolbar import debug_toolbar_urls
+        urlpatterns += debug_toolbar_urls()
+    except ImportError:
+        pass

@@ -17,6 +17,9 @@ APPS_DIR = ROOT_DIR.path('aago_ranking')
 
 env = environ.Env()
 
+# Cargar variables desde un archivo .env en la raiz del proyecto si existe.
+env.read_env(str(ROOT_DIR.path('.env')))
+
 # APP CONFIGURATION
 # ------------------------------------------------------------------------------
 DJANGO_APPS = (
@@ -36,6 +39,7 @@ DJANGO_APPS = (
 )
 THIRD_PARTY_APPS = (
     'crispy_forms',  # Form layouts
+    'crispy_bootstrap3',  # template pack bootstrap3 para crispy-forms 2.x
     'allauth',  # registration
     'allauth.account',  # registration
     'allauth.socialaccount',  # registration
@@ -53,18 +57,23 @@ LOCAL_APPS = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+# El esquema del dump usa PKs int (AutoField). Mantenemos ese tipo por defecto
+# para no generar migraciones de cambio de PK a BigAutoField.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # MIDDLEWARE CONFIGURATION
 # ------------------------------------------------------------------------------
-MIDDLEWARE_CLASSES = (
-    # Make sure djangosecure.middleware.SecurityMiddleware is listed first
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
-MIDDLEWARE = MIDDLEWARE_CLASSES
+    # allauth >= 0.55 requiere su middleware
+    'allauth.account.middleware.AccountMiddleware',
+]
 
 # MIGRATIONS CONFIGURATION
 # ------------------------------------------------------------------------------
@@ -106,6 +115,11 @@ DATABASES = {
     'default': env.db('DATABASE_URL', default='postgres:///aago_ranking'),
 }
 DATABASES['default']['ATOMIC_REQUESTS'] = True
+
+# Editar un evento en el admin envia un formulario con un inline por cada partida.
+# Los eventos grandes (cientos de partidas) generan miles de campos y superan el
+# limite por defecto de Django (1000). Subimos el limite con holgura.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240
 
 
 # GENERAL CONFIGURATION
@@ -168,6 +182,8 @@ TEMPLATES = [
 ]
 
 # See: http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
+# crispy-forms 2.x no incluye bootstrap3; viene del paquete crispy-bootstrap3.
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap3'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 # STATIC FILE CONFIGURATION
@@ -211,9 +227,9 @@ AUTHENTICATION_BACKENDS = (
     'allauth.account.auth_backends.AuthenticationBackend',
 )
 
-# Some really nice defaults
-ACCOUNT_AUTHENTICATION_METHOD = 'username'
-ACCOUNT_EMAIL_REQUIRED = True
+# Some really nice defaults (nombres nuevos de allauth >= 65)
+ACCOUNT_LOGIN_METHODS = {'username'}
+ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 
 ACCOUNT_ALLOW_REGISTRATION = env.bool('DJANGO_ACCOUNT_ALLOW_REGISTRATION', True)
@@ -226,14 +242,9 @@ AUTH_USER_MODEL = 'users.User'
 LOGIN_REDIRECT_URL = 'users:redirect'
 LOGIN_URL = 'account_login'
 
-# SLUGLIFIER
-AUTOSLUG_SLUGIFY_FUNCTION = 'slugify.slugify'
-
 ########## CELERY
 INSTALLED_APPS += ('aago_ranking.taskapp.celery.CeleryConfig',)
-# if you are not using the django database broker (e.g. rabbitmq, redis, memcached), you can remove the next line.
-#INSTALLED_APPS += ('kombu.transport.django',)
-BROKER_URL = env('CELERY_BROKER_URL', default='django://')
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
 ########## END CELERY
 
 

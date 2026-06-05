@@ -1,61 +1,39 @@
-# Wheel 0.25+ needed to install certain packages on CPython 3.5+
-# like Pillow and psycopg2
-# See http://bitly.com/wheel-building-fails-CPython-35
-# Verified bug on Python 3.5.1
-wheel==0.29.0
+# Dependencias base (compartidas por local y production).
+# Modernizado para Python 3.13/3.14 y Django 5.2 LTS.
 
-# Bleeding edge Django
-#django==1.9.6
-django>=4.0
+wheel>=0.43
+
+# Django
+django>=5.2,<5.3
 
 # Configuration
-django-environ==0.4.0
-django-secure==1.0.1
-whitenoise==3.0
-
+django-environ>=0.11
 
 # Forms
-django-braces==1.8.1
-django-crispy-forms>=1.14.0
-django-floppyforms==1.6.2
+django-crispy-forms>=2.3
+crispy-bootstrap3>=2024.1
 
 # Models
-django-model-utils>=4.2
+django-model-utils>=5.0
 
-# Images
-# Pillow==3.2.0
+# User registration (email / social)
+django-allauth>=65.0
 
-# For user registration, either via email or social
-# Well-built with regular release cycles!
-django-allauth>=0.30.0
+# Time zones: Django usa zoneinfo (stdlib), no hace falta pytz.
 
+# Redis
+django-redis>=5.4
+redis>=5.0
 
-# Python-PostgreSQL Database Adapter
-#psycopg2==2.6.1 PASO A LOCAL
+# Celery
+celery>=5.4
 
-# Unicode slugification
-unicode-slugify==0.1.3
-django-autoslug==1.9.3
+# Python-MySQL adapter
+mysqlclient>=2.2
 
-# Time zones support
-#pytz==2016.4
-pytz>=2022.0
+# Plots / data
+matplotlib>=3.8
+pandas>=2.2
 
-# Redis support
-django-redis==4.4.2
-redis>=2.10.0
-
-django-kombu==0.9.4
-kombu
-
-#celery>=3.1.23
-celery==4.3.0
-
-
-# Your custom requirements go here
-mysqlclient>=1.3.7
-
-
-matplotlib>=3.0
+# TrueSkill Through Time (PR43)
 trueskillthroughtime==1.1.0
-pandas>=1.3

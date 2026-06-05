@@ -1,25 +1,15 @@
-# Pro-tip: Try not to put anything here. Avoid dependencies in
-#	production that aren't in development.
+# Dependencias de produccion.
 -r base.txt
 
+# WSGI server
+gunicorn>=22.0
 
+# Static files
+whitenoise>=6.7
 
-# WSGI Handler
-# ------------------------------------------------
-gevent>=1.1.1
-gunicorn==19.5.0
+# Email: SMTP estandar viene con Django. Para Mailgun u otros proveedores,
+# agregar django-anymail cuando se configure el server.
+# django-anymail[mailgun]>=11.0
 
-# Static and Media Storage
-# ------------------------------------------------
-boto==2.40.0
-django-storages-redux==1.3.2
-
-# Mailgun Support
-# ---------------
-#django-mailgun==0.9.1
-
-
-
-
-
-
+# Object storage (S3) - opcional, descomentar cuando se defina el almacenamiento:
+# django-storages[boto3]>=1.14
