@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Comparación AGA vs TrueSkill{% endblock title %}
+
+{% block content %}
+
+<h2>Comparación de rankings</h2>
+<p>
+  Ranking actual <strong>AGA/RAAGo</strong> vs. el nuevo
+  <strong>TrueSkill Through Time</strong>. Cada sistema usa su propia escala de
+  rating, por eso lo que importa es la <em>posición</em> en cada uno.
+  La columna <strong>Δ</strong> indica cómo se mueve el jugador al pasar de AGA a
+  TrueSkill: <span style="color:green;">▲</span> sube, <span style="color:red;">▼</span> baja.
+</p>
+<p>
+  Jugadores rankeados: AGA {{ aga_count }} · TrueSkill {{ ttt_count }}.
+</p>
+
+<table class="table rango">
+    <tr>
+      <th>#&nbsp;AGA</th>
+      <th>Jugador</th>
+      <th>Partidas</th>
+      <th>Rating AGA</th>
+      <th>Categoría</th>
+      <th>#&nbsp;TrueSkill</th>
+      <th>Rating TrueSkill (μ&nbsp;±&nbsp;σ)</th>
+      <th>Δ</th>
+    </tr>
+    {% for row in rows %}
+    <tr class="{{ row.css_classes }}">
+      <td>{{ row.aga_rank }}</td>
+      <td>
+        <div style="float:left;width:90%;">{% if row.player.is_aago_member %}<a href="http://go.org.ar/rango/perfil-usuario?usuario={{ row.player.id }}">{% endif %}{{ row.player.name }}{% if row.player.is_aago_member %}</a>{% endif %}</div>
+        <div style="float:right;width:10%;">{% if row.player.is_aago_member %}<img src="{% static 'images/aago-logo.jpg' %}" />{% endif %}</div>
+      </td>
+      <td>{{ row.rated_games }}</td>
+      <td>{{ row.aga_rating }}</td>
+      <td>{{ row.aga_category }}</td>
+      <td>{% if row.ttt_rank %}{{ row.ttt_rank }}{% else %}―{% endif %}</td>
+      <td>{% if row.ttt_rating %}{{ row.ttt_rating }}{% else %}―{% endif %}</td>
+      <td>
+        {% if row.delta is None %}―
+        {% elif row.delta > 0 %}<span style="color:green;">▲&nbsp;{{ row.delta }}</span>
+        {% elif row.delta < 0 %}<span style="color:red;">▼&nbsp;{{ row.delta|stringformat:"d"|cut:"-" }}</span>
+        {% else %}=
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock content %}
