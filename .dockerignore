@@ -1,4 +1,16 @@
 .*
 !.coveragerc
-!.env
 !.pylintrc
+
+# Nunca meter el .env (config de desarrollo local) en la imagen de produccion:
+# en Railway/servidor las variables se inyectan por entorno.
+.env
+
+# Cosas pesadas/no necesarias en el build
+.venv
+staticfiles/
+*.log
+
+# Artefactos compilados del binario raago: se compilan dentro de la imagen.
+original-AGA-rating-system/aago-rating-calculator/raago
+original-AGA-rating-system/aago-rating-calculator/*.o
