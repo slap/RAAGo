@@ -259,6 +259,7 @@ RAAGO_BINARY_PATH = env(
     'RAAGO_BINARY_PATH',
     default='original-AGA-rating-system/aago-rating-calculator/raago')
 
-RAAGO_PLOTS_PATH = env(
-    'RAAGO_PLOTS_PATH',
-    default='rating-plots')
+# Comando para ejecutar el binario AGA. En Linux es el binario directo; en
+# Windows se invoca via WSL definiendo RAAGO_COMMAND en el .env, por ejemplo:
+#   RAAGO_COMMAND=wsl.exe,-e,./original-AGA-rating-system/aago-rating-calculator/raago
+RAAGO_COMMAND = env.list('RAAGO_COMMAND', default=[RAAGO_BINARY_PATH])

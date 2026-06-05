@@ -9,8 +9,6 @@ import io
 import logging
 import math
 import subprocess
-from . import plotter
-import os
 import pandas as pd
 
 from .trueskill import tttratings
@@ -57,7 +55,7 @@ def generate_event_ratings(event_pk):
         )
     print('END_GAMES', file=data)
     proc = subprocess.Popen(
-        [settings.RAAGO_BINARY_PATH],
+        settings.RAAGO_COMMAND,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -66,7 +64,7 @@ def generate_event_ratings(event_pk):
     if proc.wait() != 0:
         raise Exception(
             "Failed execution of raago: '{}'. Exit code: {}. Stderr: '{}'".format(
-                settings.RAAGO_BINARY_PATH,
+                settings.RAAGO_COMMAND,
                 proc.wait(),
                 stderr,
             )
@@ -97,25 +95,13 @@ def generate_event_ratings(event_pk):
             
     return ratings_data
 
-def converted_mu(x):
-    return x + (x<0) - (x>0)
-
 def run_ratings_update_cpp():
     events = Event.objects.all()
-    ret = {
+    return {
         str(e.pk): {'name': e.name,
                     'rating_changes': generate_event_ratings(e.pk)}
         for e in events
     }
-
-    # The following is used for graphics only
-    for player in Player.objects.all():
-        plot_filename = "{}.png".format(player.pk)
-        params = [(playerRating.event.end_date.toordinal(), converted_mu(playerRating.mu))
-            for playerRating in PlayerRating.objects.filter(player=player).order_by('event')]
-        if params:
-            plotter.plot_data([p[0] for p in params], [p[1] for p in params] , os.path.join(settings.RAAGO_PLOTS_PATH, plot_filename))
-    return ret
 
 
 
@@ -200,5 +186,5 @@ def run_ratings_update_ttt():
     }
 
 # Change run_ratings_update variable to the desired ratings function
-# run_ratings_update = run_ratings_update_cpp
-run_ratings_update = run_ratings_update_ttt
+run_ratings_update = run_ratings_update_cpp
+# run_ratings_update = run_ratings_update_ttt
