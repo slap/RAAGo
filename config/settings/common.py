@@ -269,8 +269,15 @@ RAAGO_COMMAND = env.list('RAAGO_COMMAND', default=[RAAGO_BINARY_PATH])
 # Genera un dump con formato mysqldump, igual al que se sube a la web de la AAGo.
 # Localmente mysqldump corre dentro del contenedor Docker; en el server se puede
 # apuntar al mysqldump nativo redefiniendo DB_DUMP_COMMAND en el entorno.
+# Se excluyen las tablas de login social (socialaccount_*): no se usan y tienen
+# columnas tipo `json` que no soportan los MySQL/MariaDB viejos (como el de la
+# web de la AAGo), ademas de FKs entre ellas.
 DB_DUMP_COMMAND = env.list(
     'DB_DUMP_COMMAND',
     default=['docker', 'exec', 'web-raago-db-1', 'mysqldump',
              '--no-tablespaces', '--single-transaction',
+             '--ignore-table=raago.socialaccount_socialaccount',
+             '--ignore-table=raago.socialaccount_socialapp',
+             '--ignore-table=raago.socialaccount_socialapp_sites',
+             '--ignore-table=raago.socialaccount_socialtoken',
              '-uroot', '-proot', 'raago'])
