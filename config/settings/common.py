@@ -263,3 +263,14 @@ RAAGO_BINARY_PATH = env(
 # Windows se invoca via WSL definiendo RAAGO_COMMAND en el .env, por ejemplo:
 #   RAAGO_COMMAND=wsl.exe,-e,./original-AGA-rating-system/aago-rating-calculator/raago
 RAAGO_COMMAND = env.list('RAAGO_COMMAND', default=[RAAGO_BINARY_PATH])
+
+# DB DUMP (boton "Download DB dump" del admin)
+# ------------------------------------------------------------------------------
+# Genera un dump con formato mysqldump, igual al que se sube a la web de la AAGo.
+# Localmente mysqldump corre dentro del contenedor Docker; en el server se puede
+# apuntar al mysqldump nativo redefiniendo DB_DUMP_COMMAND en el entorno.
+DB_DUMP_COMMAND = env.list(
+    'DB_DUMP_COMMAND',
+    default=['docker', 'exec', 'web-raago-db-1', 'mysqldump',
+             '--no-tablespaces', '--single-transaction',
+             '-uroot', '-proot', 'raago'])
