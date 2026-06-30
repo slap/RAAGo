@@ -1,5 +1,6 @@
 import datetime
 import logging
+import shutil
 import subprocess
 import threading
 import traceback
@@ -108,30 +109,49 @@ _DUMP_IGNORED_TABLES = (
 )
 
 
-def _build_dump_command():
-    """Comando mysqldump nativo armado desde la config de la DB de Django.
+def _mysqldump_args(name, host, port, user, password):
+    args = [
+        'mysqldump', '--no-tablespaces', '--single-transaction',
+        '-h', host, '-P', str(port), '-u', user,
+    ]
+    if password:
+        args.append('-p{}'.format(password))
+    args += ['--ignore-table={}.{}'.format(name, t) for t in _DUMP_IGNORED_TABLES]
+    args.append(name)
+    return args
 
-    Funciona en el server (Railway), donde hay mysqldump nativo (default-mysql-client)
-    y la DB viene de DATABASE_URL. Se puede pisar por completo con la variable de
-    entorno DB_DUMP_COMMAND (p.ej. para correrlo via `docker exec` en local).
+
+def _build_dump_command():
+    """Arma el comando de dump y funciona igual en local y en el server.
+
+    Se construye desde la config de la DB de Django (DATABASES['default']), asi
+    que toma sola las credenciales correctas en cada entorno:
+
+    - Si hay ``mysqldump`` nativo en el PATH (el server/Railway lo trae via
+      default-mysql-client) -> se corre directo contra la DB.
+    - Si no lo hay (p.ej. Windows en local) -> se corre ``mysqldump`` DENTRO del
+      contenedor Docker de MySQL, donde la DB escucha en 127.0.0.1:3306.
+
+    Se puede pisar todo con la variable de entorno DB_DUMP_COMMAND.
     """
     if settings.DB_DUMP_COMMAND:
         return settings.DB_DUMP_COMMAND
 
     db = settings.DATABASES['default']
     name = db['NAME']
-    cmd = [
-        'mysqldump', '--no-tablespaces', '--single-transaction',
-        '-h', db.get('HOST') or '127.0.0.1',
-        '-P', str(db.get('PORT') or 3306),
-        '-u', db.get('USER') or 'root',
-    ]
+    user = db.get('USER') or 'root'
     password = db.get('PASSWORD')
-    if password:
-        cmd.append('-p{}'.format(password))
-    cmd += ['--ignore-table={}.{}'.format(name, t) for t in _DUMP_IGNORED_TABLES]
-    cmd.append(name)
-    return cmd
+
+    if shutil.which('mysqldump'):
+        host = db.get('HOST') or '127.0.0.1'
+        port = db.get('PORT') or 3306
+        return _mysqldump_args(name, host, port, user, password)
+
+    # Sin mysqldump nativo: correrlo dentro del contenedor. Adentro la DB esta
+    # en 127.0.0.1:3306 (su puerto interno), no el puerto mapeado al host.
+    container = settings.DB_DUMP_DOCKER_CONTAINER
+    return ['docker', 'exec', container] + _mysqldump_args(
+        name, '127.0.0.1', 3306, user, password)
 
 
 @staff_member_required

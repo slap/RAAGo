@@ -267,9 +267,14 @@ RAAGO_COMMAND = env.list('RAAGO_COMMAND', default=[RAAGO_BINARY_PATH])
 # DB DUMP (boton "Download DB dump" del admin)
 # ------------------------------------------------------------------------------
 # Genera un dump con formato mysqldump, igual al que se sube a la web de la AAGo.
-# Por defecto (vacio) la view arma el comando con mysqldump nativo contra la DB
-# de DATABASE_URL: asi funciona en el server (Railway), que trae mysqldump via
-# default-mysql-client. Localmente, donde mysqldump corre dentro del contenedor
-# Docker, se puede pisar el comando completo en el .env, p.ej:
-#   DB_DUMP_COMMAND=docker,exec,web-raago-db-1,mysqldump,--no-tablespaces,--single-transaction,--ignore-table=raago.socialaccount_socialaccount,--ignore-table=raago.socialaccount_socialapp,--ignore-table=raago.socialaccount_socialapp_sites,--ignore-table=raago.socialaccount_socialtoken,-uroot,-proot,raago
+# La view (ratings.views._build_dump_command) lo arma desde DATABASES['default']
+# y se adapta sola al entorno: usa mysqldump nativo si esta en el PATH (server),
+# o lo corre dentro del contenedor Docker si no esta (local). No hace falta
+# cambiar nada entre local y server.
+#
+# DB_DUMP_COMMAND: override total del comando (lista separada por comas). Vacio
+# por defecto para que la view lo arme sola.
 DB_DUMP_COMMAND = env.list('DB_DUMP_COMMAND', default=[])
+# Nombre del contenedor Docker de MySQL usado en local cuando no hay mysqldump
+# nativo. En el server se ignora (ahi se usa mysqldump directo).
+DB_DUMP_DOCKER_CONTAINER = env('DB_DUMP_DOCKER_CONTAINER', default='web-raago-db-1')
