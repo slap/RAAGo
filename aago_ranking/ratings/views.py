@@ -98,17 +98,54 @@ def rating_job_status(_request, job_id):
     })
 
 
+# Tablas de login social: no se usan y tienen columnas `json` / FKs que rompen
+# en MySQL/MariaDB viejos (como el de la web de la AAGo). Se excluyen del dump.
+_DUMP_IGNORED_TABLES = (
+    'socialaccount_socialaccount',
+    'socialaccount_socialapp',
+    'socialaccount_socialapp_sites',
+    'socialaccount_socialtoken',
+)
+
+
+def _build_dump_command():
+    """Comando mysqldump nativo armado desde la config de la DB de Django.
+
+    Funciona en el server (Railway), donde hay mysqldump nativo (default-mysql-client)
+    y la DB viene de DATABASE_URL. Se puede pisar por completo con la variable de
+    entorno DB_DUMP_COMMAND (p.ej. para correrlo via `docker exec` en local).
+    """
+    if settings.DB_DUMP_COMMAND:
+        return settings.DB_DUMP_COMMAND
+
+    db = settings.DATABASES['default']
+    name = db['NAME']
+    cmd = [
+        'mysqldump', '--no-tablespaces', '--single-transaction',
+        '-h', db.get('HOST') or '127.0.0.1',
+        '-P', str(db.get('PORT') or 3306),
+        '-u', db.get('USER') or 'root',
+    ]
+    password = db.get('PASSWORD')
+    if password:
+        cmd.append('-p{}'.format(password))
+    cmd += ['--ignore-table={}.{}'.format(name, t) for t in _DUMP_IGNORED_TABLES]
+    cmd.append(name)
+    return cmd
+
+
 @staff_member_required
 @require_http_methods(["GET"])
 def download_db_dump(_request):
     """Genera un dump mysqldump de la base y lo ofrece como descarga.
 
-    El comando se configura en settings.DB_DUMP_COMMAND (por defecto corre
-    mysqldump dentro del contenedor Docker local).
+    Por defecto corre mysqldump nativo contra la DB de DATABASE_URL; se puede
+    pisar el comando completo con la variable de entorno DB_DUMP_COMMAND.
     """
+    dump_command = _build_dump_command()
     try:
         result = subprocess.run(
-            settings.DB_DUMP_COMMAND,
+            dump_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,
@@ -116,7 +153,7 @@ def download_db_dump(_request):
     except FileNotFoundError as exc:
         return HttpResponse(
             "No se pudo ejecutar el comando de dump ({}): {}".format(
-                settings.DB_DUMP_COMMAND, exc),
+                dump_command, exc),
             status=500, content_type="text/plain; charset=utf-8")
     except subprocess.CalledProcessError as exc:
         return HttpResponse(
