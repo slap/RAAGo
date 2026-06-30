@@ -109,16 +109,39 @@ _DUMP_IGNORED_TABLES = (
 )
 
 
-def _mysqldump_args(name, host, port, user, password):
+def _mysqldump_args(name, host, port, user, password, extra=()):
     args = [
         'mysqldump', '--no-tablespaces', '--single-transaction',
         '-h', host, '-P', str(port), '-u', user,
     ]
     if password:
         args.append('-p{}'.format(password))
+    args += list(extra)
     args += ['--ignore-table={}.{}'.format(name, t) for t in _DUMP_IGNORED_TABLES]
     args.append(name)
     return args
+
+
+def _dump_ssl_args(mysqldump='mysqldump'):
+    """Flags TLS para el dump nativo contra una DB gestionada (server).
+
+    La DB de Railway expone TLS con un cert self-signed, asi que el cliente falla
+    al verificar la cadena. Conectamos con TLS pero sin verificar el cert. La
+    sintaxis difiere entre el cliente MariaDB (el que trae default-mysql-client)
+    y el de MySQL. Se puede pisar con el setting DB_DUMP_SSL_ARGS.
+    """
+    if settings.DB_DUMP_SSL_ARGS is not None:
+        return settings.DB_DUMP_SSL_ARGS
+    try:
+        version = subprocess.run(
+            [mysqldump, '--version'],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        ).stdout.decode('utf-8', 'replace').lower()
+    except OSError:
+        version = ''
+    if 'mariadb' in version:
+        return ['--ssl-verify-server-cert=0']
+    return ['--ssl-mode=REQUIRED']
 
 
 def _build_dump_command():
@@ -142,10 +165,12 @@ def _build_dump_command():
     user = db.get('USER') or 'root'
     password = db.get('PASSWORD')
 
-    if shutil.which('mysqldump'):
+    native = shutil.which('mysqldump')
+    if native:
         host = db.get('HOST') or '127.0.0.1'
         port = db.get('PORT') or 3306
-        return _mysqldump_args(name, host, port, user, password)
+        return _mysqldump_args(name, host, port, user, password,
+                               extra=_dump_ssl_args(native))
 
     # Sin mysqldump nativo: correrlo dentro del contenedor. Adentro la DB esta
     # en 127.0.0.1:3306 (su puerto interno), no el puerto mapeado al host.

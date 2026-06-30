@@ -278,3 +278,8 @@ DB_DUMP_COMMAND = env.list('DB_DUMP_COMMAND', default=[])
 # Nombre del contenedor Docker de MySQL usado en local cuando no hay mysqldump
 # nativo. En el server se ignora (ahi se usa mysqldump directo).
 DB_DUMP_DOCKER_CONTAINER = env('DB_DUMP_DOCKER_CONTAINER', default='web-raago-db-1')
+# Flags TLS para el dump nativo. None (default) -> la view autodetecta segun el
+# cliente (MariaDB/MySQL) para conectar con TLS sin verificar el cert self-signed
+# de la DB gestionada. Pisar con una lista separada por comas si hace falta
+# (p.ej. DB_DUMP_SSL_ARGS=--skip-ssl para desactivar TLS).
+DB_DUMP_SSL_ARGS = env.list('DB_DUMP_SSL_ARGS', default=None)
