@@ -1,6 +1,74 @@
 {% extends "admin/change_list.html" %}
 
 {% block content %}
-<form action="{% url "ratings:run_ttt_ratings_update" %}" method="post">{% csrf_token %}<input type="submit" value="Run TrueSkill ratings update"></form>
+<form id="run-ttt-form" action="{% url "ratings:run_ttt_ratings_update" %}" method="post">{% csrf_token %}<input type="submit" value="Run TrueSkill ratings update"></form>
+<p id="run-ttt-status" style="margin:4px 0;"></p>
+
+<script>
+(function () {
+  var form = document.getElementById("run-ttt-form");
+  var statusEl = document.getElementById("run-ttt-status");
+  var button = form.querySelector("input[type=submit]");
+  // URL de status con placeholder 0; se reemplaza por el job_id real.
+  var statusUrlTemplate = "{% url 'ratings:rating_job_status' 0 %}";
+
+  function poll(jobId) {
+    fetch(statusUrlTemplate.replace(/0$/, jobId), {credentials: "same-origin"})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.finished) {
+          statusEl.textContent = "Recalculando ranking TrueSkill... (no cierres la pagina)";
+          setTimeout(function () { poll(jobId); }, 3000);
+          return;
+        }
+        if (data.status === "success") {
+          statusEl.style.color = "green";
+          statusEl.textContent = (data.message || "Listo.") + " Recargando...";
+          setTimeout(function () { window.location.reload(); }, 1500);
+        } else {
+          statusEl.style.color = "red";
+          statusEl.textContent = "Error: " + (data.message || "fallo el recalculo.");
+          button.disabled = false;
+        }
+      })
+      .catch(function () {
+        statusEl.textContent = "No se pudo consultar el estado; reintentando...";
+        setTimeout(function () { poll(jobId); }, 5000);
+      });
+  }
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    button.disabled = true;
+    statusEl.style.color = "";
+    statusEl.textContent = "Iniciando recalculo...";
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value},
+    })
+      .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, status: r.status, data: d}; }); })
+      .then(function (res) {
+        if (res.status === 409) {
+          statusEl.textContent = res.data.message || "Ya hay un recalculo corriendo.";
+          poll(res.data.job_id);
+          return;
+        }
+        if (!res.data.job_id) {
+          statusEl.style.color = "red";
+          statusEl.textContent = "No se pudo iniciar el recalculo.";
+          button.disabled = false;
+          return;
+        }
+        poll(res.data.job_id);
+      })
+      .catch(function () {
+        statusEl.style.color = "red";
+        statusEl.textContent = "No se pudo iniciar el recalculo.";
+        button.disabled = false;
+      });
+  });
+})();
+</script>
 {{ block.super }}
 {% endblock %}
