@@ -9,9 +9,10 @@ import io
 import logging
 import math
 import subprocess
-import pandas as pd
 
-from .trueskill import tttratings
+# pandas y trueskillthroughtime se importan DENTRO de las funciones que los usan.
+# A nivel de modulo sumaban ~60 MB de RSS a cada worker de gunicorn aunque nunca
+# se corriera un recalculo, y en Railway se paga la RAM por minuto.
 
 from django.conf import settings
 from django.db.models import Q
@@ -106,6 +107,8 @@ def run_ratings_update_cpp():
 
 
 def create_games_dataframe():
+    import pandas as pd
+
     # event__isnull=False: el modelo TTT agrupa las partidas por la fecha de fin
     # del evento, asi que solo consideramos partidas asociadas a un evento.
     rated_games_query = Q(unrated=False) & Q(event__isnull=False)
@@ -138,6 +141,8 @@ def generate_ttt_ratings(dry_run=False, output=None):
     Returns:
         (new_ratings_df, log_evidence, mean_evidence)
     """
+    from .trueskill import tttratings
+
     game_df = create_games_dataframe()
 
     new_ratings, log_evidence, mean_evidence = tttratings.calculate_ttt_ratings(game_df)

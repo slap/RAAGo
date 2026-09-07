@@ -88,16 +88,15 @@ TEMPLATES[0]['OPTIONS']['loaders'] = [
 DATABASES['default'] = env.db('DATABASE_URL')
 DATABASES['default']['ATOMIC_REQUESTS'] = True
 
-# CACHING (Redis)
+# CACHING (memoria local del proceso)
 # ------------------------------------------------------------------------------
+# No hay servicio Redis desplegado: apuntar a redis://127.0.0.1:6379 hacia que
+# cada operacion de cache fallara en silencio (IGNORE_EXCEPTIONS). Con un solo
+# worker de gunicorn, LocMemCache alcanza y no cuesta un servicio extra.
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/0'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'IGNORE_EXCEPTIONS': True,  # mimics memcache behavior
-        }
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': '',
     }
 }
 

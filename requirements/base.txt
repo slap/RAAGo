@@ -32,7 +32,8 @@ celery>=5.4
 mysqlclient>=2.2
 
 # Plots / data
-matplotlib>=3.8
+# matplotlib: sacado, no se importa en ningun lado del codigo (arrastraba
+# numpy/pillow/fuentes al build para nada).
 pandas>=2.2
 
 # TrueSkill Through Time (PR43)

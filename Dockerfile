@@ -44,4 +44,4 @@ EXPOSE 8000
 
 # En runtime sí hay DATABASE_URL real: migrar y levantar gunicorn.
 CMD python manage.py migrate --noinput && \
-    gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120
+    gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 1 --threads 4 --timeout 120
